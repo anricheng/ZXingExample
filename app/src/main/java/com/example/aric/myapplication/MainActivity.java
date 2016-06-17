@@ -1,75 +1,114 @@
 package com.example.aric.myapplication;
 
-import android.app.Activity;
-import android.content.Intent;
-import android.inputmethodservice.KeyboardView;
-import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.KeyEvent;
-import android.view.View;
-import android.view.ViewTreeObserver;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.FrameLayout;
 
-import com.google.zxing.integration.android.IntentIntegrator;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.TextView;
+
+import com.google.zxing.ResultPoint;
+import com.journeyapps.barcodescanner.BarcodeCallback;
+import com.journeyapps.barcodescanner.BarcodeResult;
+import com.journeyapps.barcodescanner.CompoundBarcodeView;
+
+import java.util.List;
+
 
 public class MainActivity extends AppCompatActivity {
-    private Button button;
-    private FrameLayout frameLayout;
+
     private EditText searchView;
+    private CompoundBarcodeView barcodeView;
+    private boolean isOpened;
+    private TextView tv_content;
+    private boolean flight;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        final Activity activity = this;
-        final FragmentManager supportFragmentManager = getSupportFragmentManager();
+         initView();
+        barcodeView.decodeContinuous(callback);
+        searchView.addTextChangedListener(new InputTextChangeListener());
+        barcodeView.setStatusText("Please put barcode into camera area--haifeng");
 
-        button = (Button) findViewById(R.id.bt_scaner);
-        final EditText searchView;
-        frameLayout = (FrameLayout) findViewById(R.id.fl_scaner);
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                frameLayout.setVisibility(View.VISIBLE);
+    }
 
 
-                supportFragmentManager.beginTransaction().add(R.id.fl_scaner, new myFragment()).commit();
+    private class InputTextChangeListener implements TextWatcher{
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
 
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+            String inputString = searchView.getText().toString();
+            boolean empty = inputString.isEmpty();
+            if (!empty &&isOpened){
+                barcodeView.setVisibility(View.GONE);
+                isOpened=false;
             }
-        });
 
-        searchView = (EditText) findViewById(R.id.seach_text);
-        searchView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                searchView.requestFocus();
+            if(empty&&!isOpened){
+                barcodeView.setVisibility(View.VISIBLE);
+                isOpened=true;
             }
-        });
-        searchView.setOnFocusChangeListener(new android.view.View.
-                OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (hasFocus) {
-                    frameLayout.measure(0,0);
-                    int measuredHeight = frameLayout.getMeasuredHeight();
-                    frameLayout.setPadding(0,-measuredHeight,0,0);
-                } else {
-                    frameLayout.setPadding(0,0,0,0);
-                }
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+
+        }
+    }
+
+    private void initView() {
+        flight=false;
+        isOpened = true;
+        tv_content=(TextView)findViewById(R.id.tv_content);
+        barcodeView = (CompoundBarcodeView) findViewById(R.id.barcode_scanner);
+        searchView=(EditText)findViewById(R.id.seach_text);
+    }
+
+    public void bt_flight(View view){
+
+        if(flight==false){
+            barcodeView.setTorchOn();
+        }else {
+            barcodeView.setTorchOff();
+        }
+        flight=!flight;
+
+    }
+
+
+    private BarcodeCallback callback = new BarcodeCallback() {
+        @Override
+        public void barcodeResult(BarcodeResult result) {
+            if (result.getText() != null) {
+                tv_content.setText(result.getText());
             }
-        });
+        }
 
+        @Override
+        public void possibleResultPoints(List<ResultPoint> resultPoints) {
+        }
+    };
 
+    @Override
+    public void onResume() {
+        barcodeView.resume();
+        super.onResume();
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+    public void onPause() {
+        barcodeView.pause();
+        super.onPause();
     }
+
 
 }
 
